@@ -29,22 +29,19 @@ async function getIngestionStatus(): Promise<TaskStatus[]> {
     queryOne<{ status: string; error: string | null }>(
       "SELECT status, error_message AS error FROM sync_control WHERE fonte = 'senado_votacoes'"
     ),
-    query<{ fonte: string; min_data: Date | null; max_data: Date | null }>(`
-      SELECT fonte,
-             MIN(data_apresentacao) AS min_data,
-             MAX(data_apresentacao) AS max_data
-      FROM proposicoes
-      WHERE data_apresentacao IS NOT NULL
-      GROUP BY fonte
+    query<{ fonte: string; updated_at: Date | null }>(`
+      SELECT fonte, updated_at
+      FROM sync_control
+      WHERE fonte IN ('camara', 'senado')
     `),
   ])
 
-  const rangeMap = Object.fromEntries(ranges.map(r => [r.fonte, r]))
+  const syncMap = Object.fromEntries(ranges.map(r => [r.fonte, r]))
 
-  function dateRange(fonte: string): string | undefined {
-    const r = rangeMap[fonte]
-    if (!r) return undefined
-    return `${fmtDate(r.min_data)} – ${fmtDate(r.max_data)}`
+  function coletadoEm(fonte: string): string | undefined {
+    const r = syncMap[fonte]
+    if (!r?.updated_at) return undefined
+    return `Coletado em ${fmtDate(r.updated_at)}`
   }
 
   function toTask(label: string, done: number, total: number, sub?: string, error?: boolean): TaskStatus {
@@ -59,8 +56,8 @@ async function getIngestionStatus(): Promise<TaskStatus[]> {
   const enrichTotal = Number(enrich[0]?.total ?? 0)
 
   return [
-    toTask("Câmara — Classificação", Number(camara[0]?.processadas ?? 0), camaraTotal, dateRange("camara")),
-    toTask("Senado — Classificação", Number(senado[0]?.processadas ?? 0), senadoTotal, dateRange("senado")),
+    toTask("Câmara — Classificação", Number(camara[0]?.processadas ?? 0), camaraTotal, coletadoEm("camara")),
+    toTask("Senado — Classificação", Number(senado[0]?.processadas ?? 0), senadoTotal, coletadoEm("senado")),
     toTask("Enriquecimento Câmara", Number(enrich[0]?.enriquecidas ?? 0), enrichTotal),
     {
       label: "Votações Senado",
