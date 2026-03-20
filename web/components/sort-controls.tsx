@@ -1,14 +1,21 @@
 "use client"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 
-export function SortControls({ sort, order }: { sort: string; order: string }) {
+interface Props {
+  sort: string
+  order: string
+  partido?: string
+}
+
+export function SortControls({ sort, order, partido }: Props) {
   const router = useRouter()
-  const searchParams = useSearchParams()
 
-  function update(key: string, value: string) {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set(key, value)
-    router.push(`?${params}`)
+  function buildUrl(overrides: Record<string, string>) {
+    const params = new URLSearchParams()
+    const current: Record<string, string> = { sort, order }
+    if (partido) current.partido = partido
+    Object.entries({ ...current, ...overrides }).forEach(([k, v]) => v && params.set(k, v))
+    return `?${params}`
   }
 
   const selectStyle = {
@@ -19,13 +26,13 @@ export function SortControls({ sort, order }: { sort: string; order: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <select value={sort} onChange={e => update("sort", e.target.value)}
+      <select value={sort} onChange={e => router.push(buildUrl({ sort: e.target.value }))}
         className="px-2 py-1 rounded-lg text-xs cursor-pointer" style={selectStyle}>
         <option value="alinhamento">Alinhamento</option>
         <option value="nome">Nome</option>
         <option value="total">Qtd. Proposições</option>
       </select>
-      <button onClick={() => update("order", order === "desc" ? "asc" : "desc")}
+      <button onClick={() => router.push(buildUrl({ order: order === "desc" ? "asc" : "desc" }))}
         className="px-2 py-1 rounded-lg text-xs cursor-pointer" style={selectStyle}>
         {order === "desc" ? "↓ Desc" : "↑ Asc"}
       </button>

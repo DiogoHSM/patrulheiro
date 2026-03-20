@@ -46,11 +46,13 @@ function alinhamentoPct(fav: number, cont: number): number | null {
   return total >= 2 ? Math.round((fav / total) * 100) : null
 }
 
-export default async function DeputadosPage({ searchParams }: { searchParams: Promise<{ sort?: string; order?: string }> }) {
-  const { sort = "alinhamento", order = "desc" } = await searchParams
+export default async function DeputadosPage({ searchParams }: { searchParams: Promise<{ sort?: string; order?: string; partido?: string }> }) {
+  const { sort = "alinhamento", order = "desc", partido: partido_filtro } = await searchParams
   const deputados = await getDeputados()
 
-  const sorted = [...deputados].sort((a, b) => {
+  const filtered = partido_filtro ? deputados.filter(d => d.partido === partido_filtro) : deputados
+
+  const sorted = [...filtered].sort((a, b) => {
     let diff = 0
     if (sort === "nome") {
       diff = a.nome.localeCompare(b.nome, "pt-BR")
@@ -80,37 +82,48 @@ export default async function DeputadosPage({ searchParams }: { searchParams: Pr
       <div>
         <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Deputados</h1>
         <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-          {deputados.length} deputados com proposições monitoradas
+          {partido_filtro ? `${sorted.length} de ` : ""}{deputados.length} deputados com proposições monitoradas
+          {partido_filtro && <span className="ml-1 font-semibold" style={{ color: "var(--primary)" }}>· {partido_filtro}</span>}
         </p>
       </div>
 
       {/* Por partido */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {partidos.map(({ partido, membros, pctAlinhamento, contrarias }) => (
-          <div key={partido} className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full shrink-0"
-                style={{ background: PARTIDO_CORES[partido] ?? "var(--text-dim)" }} />
-              <span className="font-bold text-sm" style={{ color: "var(--text)" }}>{partido}</span>
-            </div>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>{membros.length} dep.</p>
-            {pctAlinhamento !== null && (
-              <p className="text-xs mt-0.5 font-semibold" style={{
-                color: pctAlinhamento >= 60 ? "var(--green)" : pctAlinhamento <= 30 ? "var(--red)" : "var(--yellow)"
-              }}>{pctAlinhamento}% alinhado</p>
-            )}
-            {contrarias > 0 && (
-              <p className="text-xs mt-0.5" style={{ color: "var(--text-dim)" }}>{contrarias} contrária{contrarias !== 1 ? "s" : ""}</p>
-            )}
-          </div>
-        ))}
+        {partidos.map(({ partido, membros, pctAlinhamento, contrarias }) => {
+          const ativo = partido === partido_filtro
+          const href = ativo
+            ? `?sort=${sort}&order=${order}`
+            : `?sort=${sort}&order=${order}&partido=${partido}`
+          return (
+            <Link key={partido} href={href} className="rounded-xl p-4 block transition-all"
+              style={{
+                background: ativo ? "var(--primary)" : "var(--surface)",
+                border: `1px solid ${ativo ? "var(--primary)" : "var(--border)"}`,
+              }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: ativo ? "#fff" : (PARTIDO_CORES[partido] ?? "var(--text-dim)") }} />
+                <span className="font-bold text-sm" style={{ color: ativo ? "#fff" : "var(--text)" }}>{partido}</span>
+              </div>
+              <p className="text-xs" style={{ color: ativo ? "rgba(255,255,255,0.7)" : "var(--text-muted)" }}>{membros.length} dep.</p>
+              {pctAlinhamento !== null && (
+                <p className="text-xs mt-0.5 font-semibold" style={{
+                  color: ativo ? "#fff" : (pctAlinhamento >= 60 ? "var(--green)" : pctAlinhamento <= 30 ? "var(--red)" : "var(--yellow)")
+                }}>{pctAlinhamento}% alinhado</p>
+              )}
+              {contrarias > 0 && (
+                <p className="text-xs mt-0.5" style={{ color: ativo ? "rgba(255,255,255,0.6)" : "var(--text-dim)" }}>{contrarias} contrária{contrarias !== 1 ? "s" : ""}</p>
+              )}
+            </Link>
+          )
+        })}
       </div>
 
       {/* Lista */}
       <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
         <div className="px-5 py-4 flex items-center justify-between" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Todos os deputados</h2>
-          <SortControls sort={sort} order={order} />
+          <SortControls sort={sort} order={order} partido={partido_filtro} />
         </div>
         <div style={{ background: "var(--surface-deep)" }}>
           {sorted.map((d, i) => {
