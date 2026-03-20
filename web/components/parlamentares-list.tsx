@@ -63,9 +63,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
       const pctB = alinhamentoPct(Number(b.favoraveis), Number(b.contrarias)) ?? -1
       diff = pctA - pctB
     }
-    const primary = order === "asc" ? diff : -diff
-    // secondary sort by nome for stability
-    return primary !== 0 ? primary : a.nome.localeCompare(b.nome, "pt-BR")
+    return order === "asc" ? diff : -diff
   })
 
   return (
@@ -140,7 +138,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
           </div>
         </div>
 
-        <div style={{ background: "var(--surface-deep)" }}>
+        <div key={`${partido ?? "all"}-${sort}-${order}`} style={{ background: "var(--surface-deep)" }}>
           {sorted.map((p, i) => {
             const total = Number(p.total)
             const contrarias = Number(p.contrarias)
