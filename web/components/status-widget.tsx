@@ -5,6 +5,7 @@ export type TaskStatus = {
   label: string
   pct: number
   status: "done" | "loading" | "failed" | "pending"
+  sub?: string
 }
 
 export function StatusWidget({ tasks }: { tasks: TaskStatus[] }) {
@@ -66,7 +67,10 @@ export function StatusWidget({ tasks }: { tasks: TaskStatus[] }) {
             {tasks.map(task => (
               <div key={task.label} className="flex items-center gap-3 px-2 py-2 rounded-lg text-xs">
                 <StatusDot status={task.status} />
-                <span className="flex-1 font-medium" style={{ color: "var(--text-muted)" }}>{task.label}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium" style={{ color: "var(--text-muted)" }}>{task.label}</p>
+                  {task.sub && <p className="text-xs mt-0.5" style={{ color: "var(--text-dim)" }}>{task.sub}</p>}
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {task.status !== "pending" && (
                     <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
