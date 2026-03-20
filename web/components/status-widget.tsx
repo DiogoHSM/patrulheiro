@@ -37,7 +37,7 @@ export function StatusWidget({ tasks }: { tasks: TaskStatus[] }) {
 
   return (
     <div
-      className="fixed top-4 right-4 z-30"
+      className="fixed top-3 right-4 z-50"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
