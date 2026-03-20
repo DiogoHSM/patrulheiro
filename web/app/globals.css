@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* ── Tema Claro (padrão) ── */
+:root {
+  --bg:           #f1f5f9;
+  --surface:      #ffffff;
+  --surface-deep: #f8fafc;
+  --border:       #cbd5e1;
+  --text:         #0f172a;
+  --text-muted:   #475569;
+  --text-dim:     #94a3b8;
+  --primary:      #004f9f;
+  --yellow:       #b45309;
+  --green:        #15803d;
+  --red:          #dc2626;
+  --hover:        rgba(0,0,0,0.04);
+}
+
+/* ── Tema Escuro (via media query — padrão do sistema) ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:           #030f1c;
+    --surface:      #0a1f3c;
+    --surface-deep: #071527;
+    --border:       #112654;
+    --text:         #e2e8f0;
+    --text-muted:   #94a3b8;
+    --text-dim:     #475569;
+    --primary:      #004f9f;
+    --yellow:       #ffd500;
+    --green:        #009640;
+    --red:          #f87171;
+    --hover:        rgba(255,255,255,0.05);
+  }
+}
+
+/* ── Tema Escuro (explícito) ── */
+[data-theme="dark"] {
+  --bg:           #030f1c;
+  --surface:      #0a1f3c;
+  --surface-deep: #071527;
+  --border:       #112654;
+  --text:         #e2e8f0;
+  --text-muted:   #94a3b8;
+  --text-dim:     #475569;
+  --primary:      #004f9f;
+  --yellow:       #ffd500;
+  --green:        #009640;
+  --red:          #f87171;
+  --hover:        rgba(255,255,255,0.05);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── CSS vars responsivas para grids ── */
+:root {
+  --kpi-cols: repeat(2, minmax(0, 1fr));
+  --kpi-gap:  0.75rem;
+}
+@media (min-width: 768px) {
+  :root {
+    --kpi-cols: repeat(5, minmax(0, 1fr));
+    --kpi-gap:  1rem;
+  }
+}
+
+/* ── Divisor usando CSS var ── */
+.border-divide > * + * {
+  border-top: 1px solid var(--border);
+}
+
+/* ── Row hover ── */
+.row-hover:hover {
+  background: var(--hover) !important;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface-deep); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
