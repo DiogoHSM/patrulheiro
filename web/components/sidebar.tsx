@@ -116,18 +116,21 @@ export function Sidebar({ unreadCount }: { unreadCount?: number }) {
         <SidebarContent unreadCount={unreadCount} />
       </aside>
 
-      {/* Mobile: hamburger button */}
-      <button
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg shadow-lg cursor-pointer"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
-        onClick={() => setOpen(true)}
-      >
-        ☰
-      </button>
+      {/* Mobile: top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center px-4"
+        style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
+        <button
+          className="p-2 rounded-lg cursor-pointer"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
+          onClick={() => setOpen(true)}
+        >
+          ☰
+        </button>
+      </div>
 
       {/* Mobile: overlay */}
       {open && (
-        <div className="md:hidden fixed inset-0 z-40 flex">
+        <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <aside className="relative z-50 w-72 flex flex-col shadow-2xl">
             <SidebarContent onClose={() => setOpen(false)} unreadCount={unreadCount} />

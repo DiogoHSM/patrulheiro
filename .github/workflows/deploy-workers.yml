@@ -1,0 +1,14 @@
+name: Deploy Workers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger EasyPanel deploy
+        run: curl -fsS -X GET "${{ secrets.EASYPANEL_DEPLOY_WORKERS }}"

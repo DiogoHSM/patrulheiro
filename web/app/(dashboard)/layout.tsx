@@ -62,7 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
       <Sidebar unreadCount={unreadCount} />
-      <main className="flex-1 overflow-y-auto pt-16 md:pt-0 relative" style={{ background: "var(--bg)" }}>
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0 relative" style={{ background: "var(--bg)" }}>
         <StatusWidget tasks={tasks} />
         {children}
       </main>

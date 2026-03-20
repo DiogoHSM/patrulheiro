@@ -48,8 +48,8 @@ export default async function ProposicaoPage({ params }: { params: Promise<{ id:
 
       {/* Header */}
       <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
             <div className="flex items-center gap-3 mb-3 flex-wrap">
               <span className="font-mono font-bold text-lg" style={{ color: "var(--yellow)" }}>
                 {prop.tipo} {prop.numero}/{prop.ano}
@@ -65,7 +65,7 @@ export default async function ProposicaoPage({ params }: { params: Promise<{ id:
             </div>
             <p className="text-base leading-relaxed" style={{ color: "var(--text)" }}>{prop.ementa}</p>
           </div>
-          <div className="flex gap-2 shrink-0 flex-wrap">
+          <div className="flex gap-2 flex-wrap md:shrink-0">
             <MonitorarButton proposicaoId={id} monitorando={!!monitoramento} />
             <a href={fonteUrl(prop.fonte, prop.fonte_id)} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80 capitalize"

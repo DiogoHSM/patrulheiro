@@ -1,4 +1,5 @@
 import { query } from "@/lib/db"
+import { SortControls } from "@/components/sort-controls"
 import Link from "next/link"
 
 async function getDeputados() {
@@ -40,29 +41,39 @@ const PARTIDO_CORES: Record<string, string> = {
   PRD: "#003580",
 }
 
-export default async function DeputadosPage({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
-  const { sort } = await searchParams
+function alinhamentoPct(fav: number, cont: number): number | null {
+  const total = fav + cont
+  return total >= 2 ? Math.round((fav / total) * 100) : null
+}
+
+export default async function DeputadosPage({ searchParams }: { searchParams: Promise<{ sort?: string; order?: string }> }) {
+  const { sort = "alinhamento", order = "desc" } = await searchParams
   const deputados = await getDeputados()
 
   const sorted = [...deputados].sort((a, b) => {
-    if (sort === "nome") return a.nome.localeCompare(b.nome, "pt-BR")
-    const classA = Number(a.total) - Number(a.pendentes)
-    const classB = Number(b.total) - Number(b.pendentes)
-    const pctA = classA > 0 ? Number(a.favoraveis) / classA : 0
-    const pctB = classB > 0 ? Number(b.favoraveis) / classB : 0
-    return pctB - pctA
+    let diff = 0
+    if (sort === "nome") {
+      diff = a.nome.localeCompare(b.nome, "pt-BR")
+    } else if (sort === "total") {
+      diff = Number(a.total) - Number(b.total)
+    } else {
+      const pctA = alinhamentoPct(Number(a.favoraveis), Number(a.contrarias)) ?? -1
+      const pctB = alinhamentoPct(Number(b.favoraveis), Number(b.contrarias)) ?? -1
+      diff = pctA - pctB
+    }
+    return order === "asc" ? diff : -diff
   })
 
   const partidos = [...new Set(deputados.map(d => d.partido).filter(Boolean))]
     .map(partido => {
       const membros = deputados.filter(d => d.partido === partido)
       const totalFav = membros.reduce((acc, d) => acc + Number(d.favoraveis), 0)
-      const totalClass = membros.reduce((acc, d) => acc + Number(d.total) - Number(d.pendentes), 0)
-      const pctAlinhamento = totalClass > 0 ? Math.round((totalFav / totalClass) * 100) : 0
-      const contrarias = membros.reduce((acc, d) => acc + Number(d.contrarias), 0)
+      const totalCont = membros.reduce((acc, d) => acc + Number(d.contrarias), 0)
+      const pctAlinhamento = alinhamentoPct(totalFav, totalCont)
+      const contrarias = totalCont
       return { partido, membros, pctAlinhamento, contrarias }
     })
-    .sort((a, b) => b.pctAlinhamento - a.pctAlinhamento)
+    .sort((a, b) => (b.pctAlinhamento ?? -1) - (a.pctAlinhamento ?? -1))
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -83,13 +94,13 @@ export default async function DeputadosPage({ searchParams }: { searchParams: Pr
               <span className="font-bold text-sm" style={{ color: "var(--text)" }}>{partido}</span>
             </div>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>{membros.length} dep.</p>
-            {pctAlinhamento > 0 && (
+            {pctAlinhamento !== null && (
               <p className="text-xs mt-0.5 font-semibold" style={{
                 color: pctAlinhamento >= 60 ? "var(--green)" : pctAlinhamento <= 30 ? "var(--red)" : "var(--yellow)"
               }}>{pctAlinhamento}% alinhado</p>
             )}
             {contrarias > 0 && (
-              <p className="text-xs mt-0.5" style={{ color: "var(--red)" }}>{contrarias} contrária{contrarias !== 1 ? "s" : ""}</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-dim)" }}>{contrarias} contrária{contrarias !== 1 ? "s" : ""}</p>
             )}
           </div>
         ))}
@@ -99,17 +110,7 @@ export default async function DeputadosPage({ searchParams }: { searchParams: Pr
       <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
         <div className="px-5 py-4 flex items-center justify-between" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Todos os deputados</h2>
-          <div className="flex items-center gap-1 text-xs">
-            <span style={{ color: "var(--text-dim)" }}>Ordenar:</span>
-            <Link href="?sort=alinhamento" className="px-2 py-1 rounded transition-colors"
-              style={{ background: sort !== "nome" ? "var(--primary)" : "transparent", color: sort !== "nome" ? "#fff" : "var(--text-muted)" }}>
-              Alinhamento
-            </Link>
-            <Link href="?sort=nome" className="px-2 py-1 rounded transition-colors"
-              style={{ background: sort === "nome" ? "var(--primary)" : "transparent", color: sort === "nome" ? "#fff" : "var(--text-muted)" }}>
-              Nome
-            </Link>
-          </div>
+          <SortControls sort={sort} order={order} />
         </div>
         <div style={{ background: "var(--surface-deep)" }}>
           {sorted.map((d, i) => {

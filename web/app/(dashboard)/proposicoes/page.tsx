@@ -1,5 +1,6 @@
 import { query } from "@/lib/db"
 import { Badge, FonteBadge } from "@/components/badge"
+import { FiltersMobile } from "@/components/filters-mobile"
 import Link from "next/link"
 
 const PER_PAGE = 30
@@ -99,12 +100,13 @@ export default async function ProposicoesPage({ searchParams }: { searchParams: 
           )}
         </form>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        {/* Desktop filters */}
+        <div className="hidden md:flex flex-wrap gap-2 items-center">
           <span className="text-xs" style={{ color: "var(--text-dim)" }}>Mês:</span>
           {MESES.map(m => filterBtn("mes", m.value, m.label))}
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="hidden md:flex flex-wrap gap-2 items-center">
           <span className="text-xs" style={{ color: "var(--text-dim)" }}>Alinhamento:</span>
           {filterBtn("alinhamento", "favoravel", "✅ Favorável")}
           {filterBtn("alinhamento", "contrario", "❌ Contrário")}
@@ -118,6 +120,9 @@ export default async function ProposicoesPage({ searchParams }: { searchParams: 
           <span className="text-xs" style={{ color: "var(--text-dim)" }}>Tipo:</span>
           {["PL", "PEC", "PLP", "MPV", "PDL"].map(t => filterBtn("tipo", t, t))}
         </div>
+
+        {/* Mobile filters */}
+        <FiltersMobile filters={filters} />
       </div>
 
       {/* Table — desktop */}
