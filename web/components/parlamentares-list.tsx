@@ -104,7 +104,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
 
       {/* Lista */}
       <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-        <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap"
+        <div className="px-5 py-4 flex items-center gap-4 flex-wrap"
           style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
@@ -120,7 +120,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
           </div>
           <div className="flex items-center gap-1">
             {(["alinhamento", "nome", "total"] as const).map(opt => (
-              <button key={opt} type="button" onClick={() => setSort(opt)}
+              <button key={opt} type="button" onClick={() => { setSort(opt); setOrder(opt === "nome" ? "asc" : "desc") }}
                 className="px-2 py-1 rounded-lg text-xs cursor-pointer"
                 style={{
                   ...selectStyle,
@@ -177,7 +177,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
                     {contrarias > 0 && <span className="font-semibold" style={{ color: "var(--red)" }}>−{contrarias}</span>}
                     {pendentes > 0 && <span style={{ color: "var(--text-dim)" }}>⏳{pendentes}</span>}
                     {pctAlin !== null && (
-                      <span className="px-1.5 py-0.5 rounded font-semibold hidden sm:inline"
+                      <span className="px-1.5 py-0.5 rounded font-semibold"
                         style={{
                           background: pctAlin >= 60
                             ? "color-mix(in srgb, var(--green) 15%, transparent)"
