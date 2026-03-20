@@ -63,7 +63,9 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
       const pctB = alinhamentoPct(Number(b.favoraveis), Number(b.contrarias)) ?? -1
       diff = pctA - pctB
     }
-    return order === "asc" ? diff : -diff
+    const primary = order === "asc" ? diff : -diff
+    // secondary sort by nome for stability
+    return primary !== 0 ? primary : a.nome.localeCompare(b.nome, "pt-BR")
   })
 
   return (
@@ -73,7 +75,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
         {partidos.map(({ partido: pt, membros, pctAlinhamento, contrarias }) => {
           const ativo = pt === partido
           return (
-            <button key={pt} onClick={() => setPartido(ativo ? null : pt)}
+            <button key={pt} type="button" onClick={() => setPartido(ativo ? null : pt)}
               className="rounded-xl p-4 text-left transition-all cursor-pointer"
               style={{
                 background: ativo ? "var(--primary)" : "var(--surface)",
@@ -106,22 +108,33 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
       <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
         <div className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap"
           style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-          <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
-            {partido ? (
-              <><span style={{ color: "var(--primary)" }}>{partido}</span> — {sorted.length} de {parlamentares.length}</>
-            ) : (
-              `Todos (${parlamentares.length})`
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+              {partido ? `${sorted.length} de ${parlamentares.length}` : `Todos (${parlamentares.length})`}
+            </h2>
+            {partido && (
+              <button type="button" onClick={() => setPartido(null)}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold cursor-pointer"
+                style={{ background: "var(--primary)", color: "#fff" }}>
+                {partido} ✕
+              </button>
             )}
-          </h2>
-          <div className="flex items-center gap-2">
-            <select value={sort} onChange={e => setSort(e.target.value)}
-              className="px-2 py-1 rounded-lg text-xs cursor-pointer" style={selectStyle}>
-              <option value="alinhamento">Alinhamento</option>
-              <option value="nome">Nome</option>
-              <option value="total">Qtd. Proposições</option>
-            </select>
-            <button onClick={() => setOrder(o => o === "desc" ? "asc" : "desc")}
-              className="px-2 py-1 rounded-lg text-xs cursor-pointer" style={selectStyle}>
+          </div>
+          <div className="flex items-center gap-1">
+            {(["alinhamento", "nome", "total"] as const).map(opt => (
+              <button key={opt} type="button" onClick={() => setSort(opt)}
+                className="px-2 py-1 rounded-lg text-xs cursor-pointer"
+                style={{
+                  ...selectStyle,
+                  background: sort === opt ? "var(--primary)" : selectStyle.background,
+                  color: sort === opt ? "#fff" : selectStyle.color,
+                  border: sort === opt ? "1px solid var(--primary)" : selectStyle.border,
+                }}>
+                {opt === "alinhamento" ? "Alinhamento" : opt === "nome" ? "Nome" : "Qtd."}
+              </button>
+            ))}
+            <button type="button" onClick={() => setOrder(o => o === "desc" ? "asc" : "desc")}
+              className="px-2 py-1 rounded-lg text-xs cursor-pointer ml-1" style={selectStyle}>
               {order === "desc" ? "↓ Desc" : "↑ Asc"}
             </button>
           </div>
