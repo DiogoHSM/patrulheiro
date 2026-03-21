@@ -1,7 +1,7 @@
 import json
 from openai import AsyncOpenAI
 from app.config import settings
-from app.db import update_alinhamento, get_posicoes_partido
+from app.db import update_alinhamento, update_dou_alinhamento, get_posicoes_partido
 
 _client = AsyncOpenAI(api_key=settings.openai_api_key)
 
@@ -21,6 +21,41 @@ Responda APENAS com JSON válido:
 }}"""
 
 USER = "Tipo: {tipo}\nEmenta: {ementa}\nTemas: {temas}\nResumo: {resumo}"
+
+
+DOU_USER = "Tipo de ato: {tipo_ato}\nÓrgão: {orgao}\nTítulo: {titulo}\nTemas: {temas}\nResumo: {resumo}"
+
+
+async def analisar_alinhamento_dou(
+    ato_id: str,
+    tipo_ato: str,
+    orgao: str,
+    titulo: str,
+    temas: list[str] = None,
+    resumo: str = None,
+) -> dict:
+    posicoes = await get_posicoes_partido()
+    if not posicoes:
+        return {}
+
+    resp = await _client.chat.completions.create(
+        model="gpt-4.1-nano",
+        messages=[
+            {"role": "system", "content": SYSTEM.format(posicoes=posicoes)},
+            {"role": "user", "content": DOU_USER.format(
+                tipo_ato=tipo_ato or "",
+                orgao=orgao or "",
+                titulo=titulo or "",
+                temas=", ".join(temas or []),
+                resumo=resumo or titulo or "",
+            )},
+        ],
+        response_format={"type": "json_object"},
+        max_tokens=512,
+    )
+    result = json.loads(resp.choices[0].message.content)
+    await update_dou_alinhamento(ato_id, result)
+    return result
 
 
 async def analisar_alinhamento(

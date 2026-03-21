@@ -1,6 +1,20 @@
 import { query, queryOne } from "@/lib/db"
 import Link from "next/link"
 import { markAllRead } from "@/app/actions/monitoramentos"
+import { markAlertasRead } from "@/app/actions/monitoramentos"
+
+async function getAlertasDou() {
+  return query<{
+    id: string; tipo: string; titulo: string; descricao: string
+    severidade: string; lida: boolean; created_at: string; source_id: string
+  }>(`
+    SELECT id, tipo, titulo, descricao, severidade, lida, created_at, source_id::text
+    FROM alertas
+    WHERE source_type = 'dou'
+    ORDER BY created_at DESC
+    LIMIT 50
+  `)
+}
 
 async function getNotificacoes() {
   return query<{
@@ -40,12 +54,14 @@ function timeAgo(dateStr: string) {
 }
 
 export default async function InboxPage() {
-  const [notificacoes, monitoramentos] = await Promise.all([
+  const [notificacoes, monitoramentos, alertasDou] = await Promise.all([
     getNotificacoes(),
     getMonitoramentos(),
+    getAlertasDou(),
   ])
 
   const naoLidas = notificacoes.filter(n => !n.lida).length
+  const alertasNaoLidos = alertasDou.filter(a => !a.lida).length
 
   return (
     <div className="p-4 md:p-8 max-w-4xl space-y-6">
@@ -54,7 +70,9 @@ export default async function InboxPage() {
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Notificações</h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-            {naoLidas > 0 ? `${naoLidas} não lida${naoLidas > 1 ? "s" : ""}` : "Tudo em dia"}
+            {(naoLidas + alertasNaoLidos) > 0
+              ? `${naoLidas + alertasNaoLidos} não lida${(naoLidas + alertasNaoLidos) > 1 ? "s" : ""}`
+              : "Tudo em dia"}
           </p>
         </div>
         {naoLidas > 0 && (
@@ -116,6 +134,60 @@ export default async function InboxPage() {
           ))}
         </div>
       </div>
+
+      {/* Alertas DOU */}
+      {alertasDou.length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+            <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+              Alertas — Diário Oficial {alertasNaoLidos > 0 && <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full" style={{ background: "var(--red)", color: "#fff" }}>{alertasNaoLidos}</span>}
+            </h2>
+            {alertasNaoLidos > 0 && (
+              <form action={markAlertasRead}>
+                <button type="submit" className="text-xs cursor-pointer hover:opacity-80" style={{ color: "var(--text-dim)" }}>
+                  Marcar lidos
+                </button>
+              </form>
+            )}
+          </div>
+          <div style={{ background: "var(--surface-deep)" }}>
+            {alertasDou.map((a, i) => (
+              <div
+                key={a.id}
+                className="px-5 py-3"
+                style={{
+                  borderTop: i > 0 ? "1px solid var(--border)" : undefined,
+                  background: a.lida ? undefined : "color-mix(in srgb, var(--red) 5%, transparent)",
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      {!a.lida && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--red)" }} />}
+                      <span
+                        className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                        style={{
+                          background: a.severidade === "critica" ? "var(--red)" : "color-mix(in srgb, var(--red) 50%, transparent)",
+                          color: "#fff",
+                        }}
+                      >
+                        {a.severidade}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{a.titulo}</p>
+                    {a.descricao && (
+                      <p className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--text-muted)" }}>{a.descricao}</p>
+                    )}
+                  </div>
+                  <span className="text-xs shrink-0 mt-0.5" style={{ color: "var(--text-dim)" }}>
+                    {timeAgo(a.created_at)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Monitoramentos */}
       <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>

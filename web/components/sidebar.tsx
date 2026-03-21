@@ -14,6 +14,8 @@ const nav = [
   { divider: "Parlamentares" },
   { href: "/senadores", label: "Senadores", icon: "🏛️" },
   { href: "/deputados", label: "Deputados", icon: "👥" },
+  { divider: "Fontes" },
+  { href: "/dou", label: "Diário Oficial", icon: "📰" },
   { divider: "Configuração" },
   { href: "/posicoes", label: "Posições do Partido", icon: "🎯" },
 ]

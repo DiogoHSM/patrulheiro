@@ -41,3 +41,13 @@ class IngestResult(BaseModel):
     atualizadas: int = 0
     erros: int = 0
     mensagem: str = ""
+
+
+class DouAtoNormalized(BaseModel):
+    edicao: str           # "2026-03-21"
+    secao: str            # "1", "2", "3", "1E"
+    pagina: int | None = None
+    tipo_ato: str | None = None
+    orgao: str | None = None
+    titulo: str | None = None
+    texto_completo: str | None = None

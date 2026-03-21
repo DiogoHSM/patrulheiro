@@ -71,11 +71,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const ok = await getSession()
   if (!ok) redirect("/login")
 
-  const [row, tasks] = await Promise.all([
+  const [notif, alertas, tasks] = await Promise.all([
     queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM notificacoes WHERE lida = FALSE"),
+    queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM alertas WHERE lida = FALSE"),
     getIngestionStatus(),
   ])
-  const unreadCount = Number(row?.count ?? 0)
+  const unreadCount = Number(notif?.count ?? 0) + Number(alertas?.count ?? 0)
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>

@@ -10,9 +10,13 @@ from app.ingestion.enricher import enrich_all
 from app.ingestion.enricher_senado_autores import enrich_senado_autores
 from app.ingestion.enricher_senado_votacoes import ingest_senado_votacoes
 from app.ingestion.enricher_camara_votos import ingest_camara_votos
+from app.ingestion.dou import ingest_dou
 from app.jobs.check_tramitacoes import check_tramitacoes_monitoradas
-from app.processing.classifier import classificar_proposicao
-from app.processing.alignment import analisar_alinhamento
+from app.processing.classifier import classificar_proposicao, classificar_dou_ato
+from app.processing.alignment import analisar_alinhamento, analisar_alinhamento_dou
+from app.processing.alerter import check_dou_alerts
+from app.processing.embedder import embed_dou_ato
+from app.db import get_dou_atos_sem_processar
 
 
 @asynccontextmanager
@@ -71,6 +75,12 @@ async def trigger_senado_votacoes_historico(background_tasks: BackgroundTasks, a
     return {"status": "started", "job": "ingest_senado_votacoes_historico", "anos": list(range(ano_inicio, ano_fim + 1))}
 
 
+@app.post("/ingest/dou", dependencies=[Depends(verify_secret)])
+async def trigger_dou(background_tasks: BackgroundTasks, data: str = None):
+    background_tasks.add_task(_run_dou, data)
+    return {"status": "started", "job": "ingest_dou", "data": data}
+
+
 @app.post("/ingest/camara-votos", dependencies=[Depends(verify_secret)])
 async def trigger_camara_votos(background_tasks: BackgroundTasks):
     background_tasks.add_task(_run_camara_votos)
@@ -87,6 +97,19 @@ async def trigger_check_tramitacoes(background_tasks: BackgroundTasks):
 async def trigger_process(background_tasks: BackgroundTasks):
     background_tasks.add_task(_process_pending)
     return {"status": "started", "job": "process_pending"}
+
+
+@app.post("/process/dou-pending", dependencies=[Depends(verify_secret)])
+async def trigger_process_dou(background_tasks: BackgroundTasks):
+    background_tasks.add_task(_process_dou_pending)
+    return {"status": "started", "job": "process_dou_pending"}
+
+
+async def _run_dou(data: str | None = None):
+    result = await ingest_dou(data_override=data)
+    print(f"[dou] {result.mensagem}")
+    if result.inseridas > 0:
+        await _process_dou_pending()
 
 
 async def _run_camara_votos():
@@ -139,6 +162,40 @@ async def _run_senado():
     result = await ingest_senado()
     print(f"[senado] {result.mensagem}")
     await _process_pending()
+
+
+async def _process_dou_pending():
+    atos = await get_dou_atos_sem_processar(limite=20)
+    print(f"[process-dou] {len(atos)} atos para processar")
+    for ato in atos:
+        ato_id = str(ato["id"])
+        try:
+            classificacao = await classificar_dou_ato(
+                ato_id,
+                tipo_ato=ato["tipo_ato"],
+                orgao=ato["orgao"],
+                titulo=ato["titulo"],
+                texto=ato["texto_completo"],
+            )
+            await asyncio.sleep(0.5)
+            await analisar_alinhamento_dou(
+                ato_id,
+                tipo_ato=ato["tipo_ato"],
+                orgao=ato["orgao"],
+                titulo=ato["titulo"],
+                temas=classificacao.get("temas_primarios", []),
+                resumo=classificacao.get("resumo_executivo"),
+            )
+            await check_dou_alerts(ato_id)
+            await asyncio.sleep(0.3)
+            try:
+                await embed_dou_ato(ato_id)
+            except Exception as emb_err:
+                print(f"[process-dou] embedding falhou {ato_id}: {emb_err}")
+            print(f"[process-dou] ✓ {ato['orgao']} — {(ato['titulo'] or '')[:60]}")
+        except Exception as e:
+            print(f"[process-dou] ✗ {ato_id}: {e}")
+        await asyncio.sleep(0.5)
 
 
 async def _process_pending():

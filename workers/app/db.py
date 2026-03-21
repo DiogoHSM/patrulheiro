@@ -183,6 +183,114 @@ async def get_posicoes_partido() -> str:
     return "\n".join(lines)
 
 
+async def insert_dou_ato(data: dict) -> tuple[str, bool]:
+    """Insere ou ignora um ato do DOU. Retorna (id, inserido)."""
+    pool = await get_pool()
+    row = await pool.fetchrow("""
+        INSERT INTO dou_atos (edicao, secao, pagina, tipo_ato, orgao, titulo, texto_completo)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (edicao, secao, orgao, titulo) DO NOTHING
+        RETURNING id, (xmax = 0) AS inserido
+    """,
+        data["edicao"], data["secao"], data.get("pagina"),
+        data.get("tipo_ato"), data.get("orgao"), data.get("titulo"),
+        data.get("texto_completo"),
+    )
+    if row:
+        return str(row["id"]), bool(row["inserido"])
+    existing = await pool.fetchrow(
+        "SELECT id FROM dou_atos WHERE edicao=$1 AND secao=$2 AND orgao=$3 AND titulo=$4",
+        data["edicao"], data["secao"], data.get("orgao"), data.get("titulo"),
+    )
+    return str(existing["id"]) if existing else "", False
+
+
+async def get_dou_atos_sem_processar(limite: int = 50) -> list[dict]:
+    pool = await get_pool()
+    rows = await pool.fetch("""
+        SELECT id, tipo_ato, orgao, titulo, texto_completo
+        FROM dou_atos
+        WHERE relevante = TRUE AND processado = FALSE
+        ORDER BY created_at ASC
+        LIMIT $1
+    """, limite)
+    return [dict(r) for r in rows]
+
+
+async def update_dou_classificacao(ato_id: str, data: dict):
+    pool = await get_pool()
+    impacto_map = {"mediano": "medio", "médio": "medio", "medio": "medio",
+                   "alta": "alto", "baixa": "baixo"}
+    await pool.execute("""
+        UPDATE dou_atos SET
+            temas_primarios = $2,
+            temas_secundarios = $3,
+            resumo_executivo = $4,
+            impacto_estimado = $5
+        WHERE id = $1
+    """,
+        ato_id,
+        data.get("temas_primarios", []),
+        data.get("temas_secundarios", []),
+        data.get("resumo_executivo"),
+        impacto_map.get((data.get("impacto_estimado") or "").lower().strip(),
+                        data.get("impacto_estimado")),
+    )
+
+
+async def update_dou_alinhamento(ato_id: str, data: dict):
+    pool = await get_pool()
+    alinhamento_map = {
+        "contra": "contrario", "contrário": "contrario", "contrario": "contrario",
+        "favor": "favoravel", "favorável": "favoravel", "favoravel": "favoravel",
+        "neutro": "neutro", "ambiguo": "ambiguo", "ambíguo": "ambiguo",
+    }
+    risco_map = {"médio": "medio", "mediano": "medio", "alta": "alto", "baixa": "baixo"}
+    await pool.execute("""
+        UPDATE dou_atos SET
+            alinhamento = $2,
+            alinhamento_score = $3,
+            alinhamento_just = $4,
+            risco_politico = $5,
+            recomendacao = $6,
+            processado = TRUE
+        WHERE id = $1
+    """,
+        ato_id,
+        alinhamento_map.get((data.get("alinhamento") or "").lower().strip(),
+                            data.get("alinhamento")),
+        min(float(data.get("confianca") or 0), 1.0),
+        data.get("justificativa"),
+        risco_map.get((data.get("risco_politico") or "").lower().strip(),
+                      data.get("risco_politico")),
+        data.get("recomendacao"),
+    )
+
+
+async def insert_alerta(data: dict):
+    pool = await get_pool()
+    await pool.execute("""
+        INSERT INTO alertas (tipo, titulo, descricao, source_type, source_id, severidade)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    """,
+        data["tipo"], data["titulo"], data.get("descricao"),
+        data.get("source_type"), data.get("source_id"),
+        data.get("severidade", "media"),
+    )
+
+
+async def insert_embedding(data: dict):
+    pool = await get_pool()
+    await pool.execute("""
+        INSERT INTO embeddings (source_type, source_id, chunk_index, content, embedding, metadata)
+        VALUES ($1, $2, $3, $4, $5::vector, $6)
+        ON CONFLICT DO NOTHING
+    """,
+        data["source_type"], data["source_id"], data.get("chunk_index", 0),
+        data["content"], str(data["embedding"]), data.get("metadata", {}),
+    )
+
+
 async def get_proposicoes_sem_processar(limite: int = 50) -> list[dict]:
     pool = await get_pool()
     rows = await pool.fetch("""
