@@ -9,10 +9,12 @@ async function getVotacoes() {
     aprovacao: number | null; votos_sim: number | null; votos_nao: number | null
     votos_abstencao: number | null; orientacao_pl: string | null
     prop_id: string; tipo: string; numero: number; ano: number; alinhamento: string | null
+    n_votos: number
   }>(`
     SELECT v.id, v.votacao_id, v.fonte, v.data, v.sigla_orgao, v.descricao,
            v.aprovacao, v.votos_sim, v.votos_nao, v.votos_abstencao, v.orientacao_pl,
-           p.id AS prop_id, p.tipo, p.numero, p.ano, p.alinhamento
+           p.id AS prop_id, p.tipo, p.numero, p.ano, p.alinhamento,
+           (SELECT COUNT(*) FROM votos vo WHERE vo.votacao_id = v.id)::int AS n_votos
     FROM votacoes v
     JOIN proposicoes p ON p.id = v.proposicao_id
     ORDER BY v.data DESC NULLS LAST
@@ -57,8 +59,8 @@ function OrientacaoBadge({ orientacao }: { orientacao: string | null }) {
 export default async function VotacoesPage() {
   const votacoes = await getVotacoes()
 
-  const nominais = votacoes.filter(v => v.votos_sim !== null || v.votos_nao !== null)
-  const procedurais = votacoes.filter(v => v.votos_sim === null && v.votos_nao === null)
+  const nominais = votacoes.filter(v => v.votos_sim !== null || v.votos_nao !== null || v.n_votos > 0)
+  const procedurais = votacoes.filter(v => v.votos_sim === null && v.votos_nao === null && v.n_votos === 0)
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -148,6 +150,13 @@ export default async function VotacoesPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    {v.n_votos > 0 && (
+                      <Link href={`/votacoes/${v.id}`}
+                        className="font-mono font-semibold text-xs hover:underline"
+                        style={{ color: "var(--primary)" }}>
+                        Ver votos ↗
+                      </Link>
+                    )}
                     <Link href={`/proposicoes/${v.prop_id}`}
                       className="font-mono font-semibold text-xs hover:underline"
                       style={{ color: "var(--yellow)" }}>
