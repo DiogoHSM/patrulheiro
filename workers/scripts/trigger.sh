@@ -26,8 +26,12 @@ case "$job" in
     sleep 2
     curl -s -X POST "$BASE_URL/ingest/senado" -H "X-Worker-Secret: $SECRET" | jq .
     ;;
+  camara-votos)
+    echo "▶ Ingerindo votos individuais da Câmara..."
+    curl -s -X POST "$BASE_URL/ingest/camara-votos" -H "X-Worker-Secret: $SECRET" | jq .
+    ;;
   *)
-    echo "Uso: $0 [camara|senado|process|all]"
+    echo "Uso: $0 [camara|senado|process|all|camara-votos]"
     exit 1
     ;;
 esac

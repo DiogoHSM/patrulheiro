@@ -9,6 +9,7 @@ from app.ingestion.senado import ingest_senado
 from app.ingestion.enricher import enrich_all
 from app.ingestion.enricher_senado_autores import enrich_senado_autores
 from app.ingestion.enricher_senado_votacoes import ingest_senado_votacoes
+from app.ingestion.enricher_camara_votos import ingest_camara_votos
 from app.jobs.check_tramitacoes import check_tramitacoes_monitoradas
 from app.processing.classifier import classificar_proposicao
 from app.processing.alignment import analisar_alinhamento
@@ -70,6 +71,12 @@ async def trigger_senado_votacoes_historico(background_tasks: BackgroundTasks, a
     return {"status": "started", "job": "ingest_senado_votacoes_historico", "anos": list(range(ano_inicio, ano_fim + 1))}
 
 
+@app.post("/ingest/camara-votos", dependencies=[Depends(verify_secret)])
+async def trigger_camara_votos(background_tasks: BackgroundTasks):
+    background_tasks.add_task(_run_camara_votos)
+    return {"status": "started", "job": "ingest_camara_votos"}
+
+
 @app.post("/jobs/check-tramitacoes", dependencies=[Depends(verify_secret)])
 async def trigger_check_tramitacoes(background_tasks: BackgroundTasks):
     background_tasks.add_task(_check_tramitacoes)
@@ -80,6 +87,11 @@ async def trigger_check_tramitacoes(background_tasks: BackgroundTasks):
 async def trigger_process(background_tasks: BackgroundTasks):
     background_tasks.add_task(_process_pending)
     return {"status": "started", "job": "process_pending"}
+
+
+async def _run_camara_votos():
+    result = await ingest_camara_votos()
+    print(f"[camara-votos] {result}")
 
 
 async def _check_tramitacoes():
