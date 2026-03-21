@@ -1,5 +1,6 @@
 import { query, queryOne } from "@/lib/db"
 import { Badge } from "@/components/badge"
+import { Photo } from "@/components/photo"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
@@ -51,11 +52,14 @@ export default async function DeputadoPage({ params }: { params: Promise<{ id: s
       {/* Header */}
       <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>{deputado.nome}</h1>
-            <div className="flex items-center gap-3 mt-1">
-              {deputado.partido && <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{deputado.partido}</span>}
-              {deputado.uf && <span className="text-sm" style={{ color: "var(--text-muted)" }}>{deputado.uf}</span>}
+          <div className="flex items-center gap-4">
+            <Photo src={`https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg`} nome={deputado.nome} size={80} />
+            <div>
+              <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>{deputado.nome}</h1>
+              <div className="flex items-center gap-3 mt-1">
+                {deputado.partido && <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{deputado.partido}</span>}
+                {deputado.uf && <span className="text-sm" style={{ color: "var(--text-muted)" }}>{deputado.uf}</span>}
+              </div>
             </div>
           </div>
           <a href={camaraUrl(id)} target="_blank" rel="noopener noreferrer"

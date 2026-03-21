@@ -63,6 +63,7 @@ export default async function SenadoresPage() {
         linkBase="/senadores"
         memberLabel="senador"
         memberLabelPlural="senadores"
+        fonte="senado"
       />
     </div>
   )

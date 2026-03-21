@@ -41,6 +41,7 @@ export default async function DeputadosPage() {
         linkBase="/deputados"
         memberLabel="dep."
         memberLabelPlural="dep."
+        fonte="camara"
       />
     </div>
   )

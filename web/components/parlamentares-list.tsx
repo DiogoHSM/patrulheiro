@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
+import { Photo, PartidoLogo } from "@/components/photo"
 
 export interface Parlamentar {
   fonte_id: string; nome: string; partido: string; uf: string
@@ -17,6 +18,7 @@ interface Props {
   linkBase: string
   memberLabel: string
   memberLabelPlural: string
+  fonte: "camara" | "senado"
 }
 
 const PARTIDO_CORES: Record<string, string> = {
@@ -36,7 +38,13 @@ const selectStyle = {
   color: "var(--text)",
 }
 
-export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, memberLabel, memberLabelPlural }: Props) {
+function fotoUrl(fonte: "camara" | "senado", fonteId: string) {
+  return fonte === "camara"
+    ? `https://www.camara.leg.br/internet/deputado/bandep/${fonteId}.jpg`
+    : `https://www.senado.leg.br/senadores/img/fotos-oficiais/senador${fonteId}.jpg`
+}
+
+export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, memberLabel, memberLabelPlural, fonte }: Props) {
   const [sort, setSort] = useState("alinhamento")
   const [order, setOrder] = useState<"asc" | "desc">("desc")
   const [partido, setPartido] = useState<string | null>(null)
@@ -79,9 +87,9 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
                 background: ativo ? "var(--primary)" : "var(--surface)",
                 border: `1px solid ${ativo ? "var(--primary)" : "var(--border)"}`,
               }}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: ativo ? "#fff" : (PARTIDO_CORES[pt] ?? "var(--text-dim)") }} />
+              <div className="flex items-center gap-2 mb-2">
+                {!ativo && <PartidoLogo sigla={pt} size={24} />}
+                {ativo && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#fff" }} />}
                 <span className="font-bold text-sm" style={{ color: ativo ? "#fff" : "var(--text)" }}>{pt}</span>
               </div>
               <p className="text-xs" style={{ color: ativo ? "rgba(255,255,255,0.75)" : "var(--text-muted)" }}>
@@ -155,8 +163,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
                 style={{ borderTop: i > 0 ? "1px solid var(--border)" : undefined }}>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-1.5 h-8 rounded-full shrink-0"
-                      style={{ background: PARTIDO_CORES[p.partido] ?? "var(--border)" }} />
+                    <Photo src={fotoUrl(fonte, p.fonte_id)} nome={p.nome} size={32} />
                     <div className="min-w-0">
                       <Link href={`${linkBase}/${p.fonte_id}`}
                         className="font-medium text-sm hover:underline"

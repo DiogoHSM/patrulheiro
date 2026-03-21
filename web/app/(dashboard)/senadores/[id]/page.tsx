@@ -1,5 +1,6 @@
 import { query, queryOne } from "@/lib/db"
 import { Badge } from "@/components/badge"
+import { Photo } from "@/components/photo"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
@@ -66,11 +67,14 @@ export default async function SenadorPage({ params }: { params: Promise<{ id: st
       {/* Header */}
       <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>{senador.nome}</h1>
-            <div className="flex items-center gap-3 mt-1">
-              {senador.partido && <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{senador.partido}</span>}
-              {senador.uf && <span className="text-sm" style={{ color: "var(--text-muted)" }}>{senador.uf}</span>}
+          <div className="flex items-center gap-4">
+            <Photo src={`https://www.senado.leg.br/senadores/img/fotos-oficiais/senador${id}.jpg`} nome={senador.nome} size={80} />
+            <div>
+              <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>{senador.nome}</h1>
+              <div className="flex items-center gap-3 mt-1">
+                {senador.partido && <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{senador.partido}</span>}
+                {senador.uf && <span className="text-sm" style={{ color: "var(--text-muted)" }}>{senador.uf}</span>}
+              </div>
             </div>
           </div>
           {senador.url_perfil && (
