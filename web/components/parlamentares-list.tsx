@@ -206,7 +206,7 @@ export function ParlamentaresList({ parlamentares, alinhamentoVotos, linkBase, m
                               : "color-mix(in srgb, var(--yellow) 15%, transparent)",
                           color: pctVoto >= 70 ? "var(--green)" : pctVoto <= 40 ? "var(--red)" : "var(--yellow)",
                         }}>
-                        {pctVoto}% votos
+                        {pctVoto}% votação
                       </span>
                     )}
                   </div>

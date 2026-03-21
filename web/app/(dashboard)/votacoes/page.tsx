@@ -82,6 +82,11 @@ export default async function VotacoesPage() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Link href={`/votacoes/${v.id}`}
+                        className="font-mono font-semibold text-sm hover:underline"
+                        style={{ color: "var(--primary)" }}>
+                        Ver votos ↗
+                      </Link>
                       <Link href={`/proposicoes/${v.prop_id}`}
                         className="font-mono font-semibold text-sm hover:underline"
                         style={{ color: "var(--yellow)" }}>
