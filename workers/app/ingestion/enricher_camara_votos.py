@@ -40,7 +40,7 @@ async def ingest_camara_votos() -> dict:
         FROM votacoes v
         WHERE v.fonte IS NULL
           AND NOT EXISTS (
-              SELECT 1 FROM votos vo WHERE vo.votacao_id = v.id::text
+              SELECT 1 FROM votos vo WHERE vo.votacao_id = v.id
           )
         ORDER BY v.data DESC
     """)
@@ -52,7 +52,7 @@ async def ingest_camara_votos() -> dict:
 
     async with httpx.AsyncClient() as client:
         for i, row in enumerate(rows):
-            vot_db_id = str(row["id"])
+            vot_db_id = row["id"]
             api_id = row["api_id"]
 
             try:
