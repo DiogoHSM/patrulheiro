@@ -24,8 +24,8 @@ export default async function ProposicaoPage({ params }: { params: Promise<{ id:
 
   if (!prop) notFound()
 
-  const autores = await query<{ nome: string; partido: string; uf: string; tipo_autoria: string; fonte_id: string }>(
-    `SELECT nome, partido, uf, tipo_autoria, fonte_id FROM proposicao_autores WHERE proposicao_id = $1 ORDER BY tipo_autoria`, [id]
+  const autores = await query<{ nome: string; partido: string; uf: string; tipo_autoria: string; fonte_id: string; em_exercicio: boolean }>(
+    `SELECT nome, partido, uf, tipo_autoria, fonte_id, em_exercicio FROM proposicao_autores WHERE proposicao_id = $1 ORDER BY tipo_autoria`, [id]
   )
 
   const tramitacoes = await query<{ data: string; descricao: string; orgao: string }>(`
@@ -173,7 +173,11 @@ export default async function ProposicaoPage({ params }: { params: Promise<{ id:
                         )}
                       </div>
                       <div className="flex gap-2 text-xs" style={{ color: "var(--text-dim)" }}>
-                        {a.partido && <span style={{ color: "var(--yellow)" }}>{a.partido}</span>}
+                        {a.partido && (
+                          <span style={{ color: a.em_exercicio === false ? "var(--text-dim)" : "var(--yellow)" }}>
+                            {a.em_exercicio === false ? `ex-${a.partido}` : a.partido}
+                          </span>
+                        )}
                         {a.uf && <span>{a.uf}</span>}
                       </div>
                     </div>

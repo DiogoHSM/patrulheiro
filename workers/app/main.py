@@ -10,6 +10,7 @@ from app.ingestion.enricher import enrich_all
 from app.ingestion.enricher_senado_autores import enrich_senado_autores
 from app.ingestion.enricher_senado_votacoes import ingest_senado_votacoes
 from app.ingestion.enricher_camara_votos import ingest_camara_votos
+from app.ingestion.enricher_camara_autores import enrich_camara_autores
 from app.ingestion.dou import ingest_dou
 from app.jobs.check_tramitacoes import check_tramitacoes_monitoradas
 from app.processing.classifier import classificar_proposicao, classificar_dou_ato
@@ -81,6 +82,12 @@ async def trigger_dou(background_tasks: BackgroundTasks, data: str = None):
     return {"status": "started", "job": "ingest_dou", "data": data}
 
 
+@app.post("/enrich/camara-autores", dependencies=[Depends(verify_secret)])
+async def trigger_enrich_camara_autores(background_tasks: BackgroundTasks):
+    background_tasks.add_task(_run_enrich_camara_autores)
+    return {"status": "started", "job": "enrich_camara_autores"}
+
+
 @app.post("/ingest/camara-votos", dependencies=[Depends(verify_secret)])
 async def trigger_camara_votos(background_tasks: BackgroundTasks):
     background_tasks.add_task(_run_camara_votos)
@@ -110,6 +117,11 @@ async def _run_dou(data: str | None = None):
     print(f"[dou] {result.mensagem}")
     if result.inseridas > 0:
         await _process_dou_pending()
+
+
+async def _run_enrich_camara_autores():
+    result = await enrich_camara_autores()
+    print(f"[camara-autores] {result}")
 
 
 async def _run_camara_votos():
