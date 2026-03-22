@@ -11,6 +11,7 @@ from app.ingestion.enricher_senado_autores import enrich_senado_autores
 from app.ingestion.enricher_senado_votacoes import ingest_senado_votacoes
 from app.ingestion.enricher_camara_votos import ingest_camara_votos
 from app.ingestion.enricher_camara_autores import enrich_camara_autores
+from app.ingestion.enricher_camara_votacoes import ingest_camara_votacoes
 from app.ingestion.dou import ingest_dou
 from app.jobs.check_tramitacoes import check_tramitacoes_monitoradas
 from app.processing.classifier import classificar_proposicao, classificar_dou_ato
@@ -94,6 +95,18 @@ async def trigger_camara_votos(background_tasks: BackgroundTasks):
     return {"status": "started", "job": "ingest_camara_votos"}
 
 
+@app.post("/ingest/camara-votacoes", dependencies=[Depends(verify_secret)])
+async def trigger_camara_votacoes(background_tasks: BackgroundTasks, data_inicio: str = None, data_fim: str = None):
+    background_tasks.add_task(_run_camara_votacoes, data_inicio, data_fim)
+    return {"status": "started", "job": "ingest_camara_votacoes", "data_inicio": data_inicio, "data_fim": data_fim}
+
+
+@app.post("/ingest/camara-votacoes-historico", dependencies=[Depends(verify_secret)])
+async def trigger_camara_votacoes_historico(background_tasks: BackgroundTasks, ano_inicio: int = 2023, ano_fim: int = 2026):
+    background_tasks.add_task(_run_camara_votacoes_historico, ano_inicio, ano_fim)
+    return {"status": "started", "job": "ingest_camara_votacoes_historico", "anos": list(range(ano_inicio, ano_fim + 1))}
+
+
 @app.post("/jobs/check-tramitacoes", dependencies=[Depends(verify_secret)])
 async def trigger_check_tramitacoes(background_tasks: BackgroundTasks):
     background_tasks.add_task(_check_tramitacoes)
@@ -127,6 +140,26 @@ async def _run_enrich_camara_autores():
 async def _run_camara_votos():
     result = await ingest_camara_votos()
     print(f"[camara-votos] {result}")
+
+
+async def _run_camara_votacoes(data_inicio: str | None = None, data_fim: str | None = None):
+    result = await ingest_camara_votacoes(data_inicio_override=data_inicio, data_fim_override=data_fim)
+    print(f"[camara-votacoes] {result}")
+
+
+async def _run_camara_votacoes_historico(ano_inicio: int, ano_fim: int):
+    for ano in range(ano_inicio, ano_fim + 1):
+        for mes_ini, mes_fim in [("01-01", "06-30"), ("07-01", "12-31")]:
+            ini = f"{ano}-{mes_ini}"
+            fim = f"{ano}-{mes_fim}"
+            print(f"[camara-votacoes-historico] Processando {ini} → {fim}")
+            try:
+                result = await ingest_camara_votacoes(data_inicio_override=ini, data_fim_override=fim)
+                print(f"[camara-votacoes-historico] {ini}: {result}")
+            except Exception as e:
+                print(f"[camara-votacoes-historico] ✗ {ini}: {e}")
+            await asyncio.sleep(2)
+    print(f"[camara-votacoes-historico] Concluído {ano_inicio}→{ano_fim}")
 
 
 async def _check_tramitacoes():
