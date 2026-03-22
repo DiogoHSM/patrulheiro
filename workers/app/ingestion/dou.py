@@ -50,38 +50,42 @@ def _is_irrelevant(ato: DouAtoNormalized) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Autenticação INLABS
+# Autenticação INLABS (cookie-based)
 # ---------------------------------------------------------------------------
-_token_cache: dict = {}
-
-
-async def _get_token(client: httpx.AsyncClient) -> str:
-    if _token_cache.get("token"):
-        return _token_cache["token"]
+async def _login(client: httpx.AsyncClient) -> None:
+    """Autentica no INLABS setando cookies de sessão no client."""
     resp = await client.post(
-        f"{INLABS_BASE}/acesso.php",
+        f"{INLABS_BASE}/logar.php",
         data={"email": settings.inlabs_user, "password": settings.inlabs_password},
         timeout=30,
     )
-    resp.raise_for_status()
-    body = resp.json()
-    token = body.get("token") or body.get("access_token") or ""
-    _token_cache["token"] = token
-    return token
+    # Login bem-sucedido retorna 302 com inlabs_session_cookie
+    if resp.status_code not in (200, 302):
+        raise Exception(f"Login falhou com status {resp.status_code}")
+    if "inlabs_session_cookie" not in dict(client.cookies):
+        raise Exception("Login falhou: credenciais inválidas")
 
 
 # ---------------------------------------------------------------------------
-# Download do ZIP diário do INLABS
+# Download dos ZIPs do INLABS por seção
 # ---------------------------------------------------------------------------
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=15))
-async def _download_zip(client: httpx.AsyncClient, data_str: str, token: str) -> bytes:
+_SECOES = ["DO1", "DO1E", "DO2", "DO2E", "DO3"]
+
+
+async def _download_secao(client: httpx.AsyncClient, data_str: str, secao: str) -> bytes | None:
+    """Baixa o ZIP de uma seção. Retorna None se não existir."""
+    nome = f"{data_str}-{secao}.zip"
     resp = await client.get(
         f"{INLABS_BASE}/index.php",
-        params={"p": data_str},
-        headers={"Authorization": f"Bearer {token}"},
+        params={"p": data_str, "dl": nome},
         timeout=120,
         follow_redirects=True,
     )
+    if resp.status_code == 404:
+        return None
+    content_type = resp.headers.get("content-type", "")
+    if content_type.startswith("text/html"):
+        return None  # seção não existe para essa data
     resp.raise_for_status()
     return resp.content
 
@@ -92,40 +96,42 @@ async def _download_zip(client: httpx.AsyncClient, data_str: str, token: str) ->
 # ---------------------------------------------------------------------------
 def _parse_xml(xml_bytes: bytes, edicao: str) -> list[DouAtoNormalized]:
     atos = []
+    # Remove BOM se presente
+    if xml_bytes.startswith(b"\xef\xbb\xbf"):
+        xml_bytes = xml_bytes[3:]
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
         return atos
 
-    # Suporta tanto <article> quanto <item> dependendo da versão do XML
-    for elem in root.iter():
-        if elem.tag not in ("article", "item", "artigo"):
-            continue
+    for elem in root.iter("article"):
+        attr = elem.attrib
 
-        def _text(tag: str) -> str | None:
-            child = elem.find(tag)
-            return child.text.strip() if child is not None and child.text else None
+        # Seção: atributo pubName ("DO1", "DO2", "DO3") → normaliza para "1", "2", "3"
+        secao_raw = attr.get("pubName", "")
+        secao = re.sub(r"^DO", "", secao_raw).strip() or "1"
 
-        secao = (
-            _text("secao_dou_data") or _text("secao") or _text("pubname") or "1"
-        )
-        # pubname vem como "DO1", "DO2", "DO3" — normaliza para "1", "2", "3"
-        secao = re.sub(r"^DO", "", secao).strip() or "1"
-
-        pagina_str = _text("pagina_dou_data") or _text("pagina")
+        pagina_str = attr.get("numberPage")
         try:
             pagina = int(pagina_str) if pagina_str else None
         except ValueError:
             pagina = None
 
-        tipo_ato = (
-            _text("art_type") or _text("tipoDoAto") or _text("tipo_ato") or _text("art_category")
-        )
-        orgao = (
-            _text("orgao_dou_data") or _text("orgao") or _text("ato_orgao_lotacao")
-        )
-        titulo = _text("art_title") or _text("titulo") or _text("ementa")
-        corpo = _text("art_body") or _text("corpo") or _text("texto")
+        tipo_ato = attr.get("artType") or attr.get("artCategory", "").split("/")[0].strip() or None
+        orgao = attr.get("artCategory") or None
+
+        body = elem.find("body")
+        if body is not None:
+            def _cdata(tag: str) -> str | None:
+                child = body.find(tag)
+                if child is not None and child.text:
+                    return child.text.strip() or None
+                return None
+            titulo = _cdata("Identifica") or _cdata("Titulo") or _cdata("Ementa")
+            corpo = _cdata("Texto") or _cdata("corpo")
+        else:
+            titulo = None
+            corpo = None
 
         if not titulo and not orgao:
             continue
@@ -171,22 +177,25 @@ async def ingest_dou(data_override: str | None = None) -> IngestResult:
     filtrados = 0
     erros = 0
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=False) as client:
         try:
-            token = await _get_token(client)
+            await _login(client)
         except Exception as e:
             await set_last_sync("dou", status="error", records=0, error=str(e))
             return IngestResult(fonte="dou", erros=1, mensagem=f"Falha de autenticação INLABS: {e}")
 
-        try:
-            zip_bytes = await _download_zip(client, edicao, token)
-        except Exception as e:
-            # Invalida token em cache para próxima tentativa
-            _token_cache.clear()
-            await set_last_sync("dou", status="error", records=0, error=str(e))
-            return IngestResult(fonte="dou", erros=1, mensagem=f"Falha no download INLABS {edicao}: {e}")
+        atos = []
+        for secao in _SECOES:
+            try:
+                zip_bytes = await _download_secao(client, edicao, secao)
+                if zip_bytes:
+                    atos.extend(_extract_atos_from_zip(zip_bytes, edicao))
+            except Exception as e:
+                print(f"[dou] erro ao baixar seção {secao}: {e}")
 
-    atos = _extract_atos_from_zip(zip_bytes, edicao)
+    if not atos:
+        await set_last_sync("dou", status="error", records=0, error="Nenhum ato encontrado")
+        return IngestResult(fonte="dou", erros=1, mensagem=f"Nenhum ato encontrado para {edicao} (DOU não publicado?)")
 
     for ato in atos:
         if _is_irrelevant(ato):
