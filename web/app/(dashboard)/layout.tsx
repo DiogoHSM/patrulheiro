@@ -73,7 +73,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const [notif, alertas, tasks] = await Promise.all([
     queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM notificacoes WHERE lida = FALSE"),
-    queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM alertas WHERE lida = FALSE"),
+    queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM alertas WHERE lido = FALSE"),
     getIngestionStatus(),
   ])
   const unreadCount = Number(notif?.count ?? 0) + Number(alertas?.count ?? 0)

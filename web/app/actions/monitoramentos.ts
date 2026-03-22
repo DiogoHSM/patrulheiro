@@ -25,6 +25,6 @@ export async function markRead(notificacaoId: string) {
 }
 
 export async function markAlertasRead() {
-  await query("UPDATE alertas SET lida = TRUE WHERE lida = FALSE")
+  await query("UPDATE alertas SET lido = TRUE WHERE lido = FALSE")
   revalidatePath("/inbox")
 }

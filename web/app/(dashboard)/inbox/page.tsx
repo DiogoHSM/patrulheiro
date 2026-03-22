@@ -6,9 +6,9 @@ import { markAlertasRead } from "@/app/actions/monitoramentos"
 async function getAlertasDou() {
   return query<{
     id: string; tipo: string; titulo: string; descricao: string
-    severidade: string; lida: boolean; created_at: string; source_id: string
+    severidade: string; lido: boolean; created_at: string; source_id: string
   }>(`
-    SELECT id, tipo, titulo, descricao, severidade, lida, created_at, source_id::text
+    SELECT id, tipo, titulo, descricao, severidade, lido, created_at, source_id::text
     FROM alertas
     WHERE source_type = 'dou'
     ORDER BY created_at DESC
@@ -61,7 +61,7 @@ export default async function InboxPage() {
   ])
 
   const naoLidas = notificacoes.filter(n => !n.lida).length
-  const alertasNaoLidos = alertasDou.filter(a => !a.lida).length
+  const alertasNaoLidos = alertasDou.filter(a => !a.lido).length
 
   return (
     <div className="p-4 md:p-8 max-w-4xl space-y-6">
@@ -157,13 +157,13 @@ export default async function InboxPage() {
                 className="px-5 py-3"
                 style={{
                   borderTop: i > 0 ? "1px solid var(--border)" : undefined,
-                  background: a.lida ? undefined : "color-mix(in srgb, var(--red) 5%, transparent)",
+                  background: a.lido ? undefined : "color-mix(in srgb, var(--red) 5%, transparent)",
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-0.5">
-                      {!a.lida && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--red)" }} />}
+                      {!a.lido && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--red)" }} />}
                       <span
                         className="text-xs font-semibold px-1.5 py-0.5 rounded"
                         style={{
