@@ -138,6 +138,10 @@ patrulheiro/
 
 | Data | Mudança |
 |---|---|
+| 2026-03-22 | Fix 500 no dashboard: coluna `alertas.lido` (não `lida`) — corrigido em layout, inbox e action |
+| 2026-03-22 | Rewrite INLABS auth: cookie-based via `logar.php`; download por seção (DO1–DO3); parser XML via atributos |
+| 2026-03-22 | `/dou`: texto do ato renderizado com `dangerouslySetInnerHTML` + collapse/expand |
+| 2026-03-22 | `/dou`: filtros padrão inteligentes — última edição disponível + Seção 1 ao abrir sem parâmetros |
 | 2026-03-21 | `enricher_camara_votos.py`: backfill de votos individuais da Câmara + endpoint `POST /ingest/camara-votos` |
 | 2026-03-21 | Fix votações nominais: placar populado de 123 votações via UPDATE; front classifica por `n_votos > 0` |
 | 2026-03-21 | Fotos de parlamentares (`Photo`) e logos de partidos (`PartidoLogo`) em `components/photo.tsx` |
