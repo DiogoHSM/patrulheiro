@@ -3,8 +3,7 @@ import { useState } from "react"
 
 export function TextoCompleto({ texto }: { texto: string }) {
   const [expanded, setExpanded] = useState(false)
-  const preview = texto.slice(0, 600)
-  const hasMore = texto.length > 600
+  const hasMore = texto.length > 1500
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
@@ -12,10 +11,15 @@ export function TextoCompleto({ texto }: { texto: string }) {
         <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Texto do ato</h2>
       </div>
       <div className="px-5 py-4" style={{ background: "var(--surface-deep)" }}>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-muted)" }}>
-          {expanded ? texto : preview}
-          {!expanded && hasMore && "…"}
-        </p>
+        <div
+          className="text-sm leading-relaxed dou-texto"
+          style={{
+            color: "var(--text-muted)",
+            maxHeight: expanded ? "none" : "300px",
+            overflow: expanded ? "visible" : "hidden",
+          }}
+          dangerouslySetInnerHTML={{ __html: texto }}
+        />
         {hasMore && (
           <button
             onClick={() => setExpanded(v => !v)}
